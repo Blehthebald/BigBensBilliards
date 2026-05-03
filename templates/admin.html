@@ -1,0 +1,161 @@
+{% extends 'layout.html' %}
+{% block content %}
+<h2>Admin Dashboard</h2>
+<hr>
+
+<h3>Matches Awaiting Final Approval</h3>
+{% if not matches %}
+    <p>No matches pending admin approval.</p>
+{% else %}
+    <table role="grid">
+        <thead><tr><th>Format</th><th>Team 1</th><th>Team 2</th><th>Winner</th><th>Actions</th></tr></thead>
+        <tbody>
+            {% for match in matches %}
+            <tr>
+                <td>{{ match.match_type }}</td>
+                <td>{{ match.p1.name }}{% if match.p1_partner_id %} & {{ match.p1_partner.name }}{% endif %}</td>
+                <td>{{ match.p2.name }}{% if match.p2_partner_id %} & {{ match.p2_partner.name }}{% endif %}</td>
+                <td>{% if match.winner_id == match.p1_id %} Team 1 {% else %} Team 2 {% endif %}</td>
+                <td>
+                    <a href="/admin/approve/{{ match.id }}" role="button">Approve</a>
+                    <a href="/admin/reject/{{ match.id }}" role="button" class="secondary">Reject</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% endif %}
+
+<hr>
+<h3 style="color: #ffcc00;">Admin Override: Force Log Match</h3>
+<p style="color: #aaa;">Use this to manually bypass player confirmation if someone refuses to accept a loss.</p>
+<div class="grid">
+    <div class="card" style="border: 1px solid #ffcc00;">
+        <h4 style="color: #ffcc00; margin-bottom: 1rem;">Force 1v1 Match</h4>
+        <form action="/admin/force_match" method="POST">
+            <input type="hidden" name="match_type" value="1v1">
+
+            <label>Player 1</label>
+            <select name="p1_id" required><option disabled selected>Select...</option>{% for p in players %}<option value="{{ p.id }}">{{ p.name }}</option>{% endfor %}</select>
+
+            <label>Player 2</label>
+            <select name="p2_id" required><option disabled selected>Select...</option>{% for p in players %}<option value="{{ p.id }}">{{ p.name }}</option>{% endfor %}</select>
+
+            <label>Winning Player</label>
+            <select name="outcome" required><option value="team1_won">Player 1 Won</option><option value="team2_won">Player 2 Won</option></select>
+
+            <button type="submit" style="background-color: #ffcc00; color: #000; border: none; font-weight: bold;">Force Log 1v1</button>
+        </form>
+    </div>
+
+    <div class="card" style="border: 1px solid #ffcc00;">
+        <h4 style="color: #ffcc00; margin-bottom: 1rem;">Force 2v2 Match</h4>
+        <form action="/admin/force_match" method="POST">
+            <input type="hidden" name="match_type" value="2v2">
+
+            <label>Team 1 Captain</label>
+            <select name="p1_id" required><option disabled selected>Select...</option>{% for p in players %}<option value="{{ p.id }}">{{ p.name }}</option>{% endfor %}</select>
+
+            <label>Team 1 Partner</label>
+            <select name="p1_partner_id" required><option disabled selected>Select...</option>{% for p in players %}<option value="{{ p.id }}">{{ p.name }}</option>{% endfor %}</select>
+
+            <label>Team 2 Captain</label>
+            <select name="p2_id" required><option disabled selected>Select...</option>{% for p in players %}<option value="{{ p.id }}">{{ p.name }}</option>{% endfor %}</select>
+
+            <label>Team 2 Partner</label>
+            <select name="p2_partner_id" required><option disabled selected>Select...</option>{% for p in players %}<option value="{{ p.id }}">{{ p.name }}</option>{% endfor %}</select>
+
+            <label>Winning Team</label>
+            <select name="outcome" required><option value="team1_won">Team 1 Won</option><option value="team2_won">Team 2 Won</option></select>
+
+            <button type="submit" style="background-color: #ffcc00; color: #000; border: none; font-weight: bold;">Force Log 2v2</button>
+        </form>
+    </div>
+</div>
+
+<hr>
+<div class="grid">
+    <div>
+        <h3 style="color: darkorange;">Manual Elo Override</h3>
+        <form action="/admin/edit_elo" method="POST">
+            <select name="player_id" required>
+                <option value="" disabled selected>Select Player...</option>
+                {% for p in players %}<option value="{{ p.id }}">{{ p.name }} (Current: {{ p.elo }})</option>{% endfor %}
+            </select>
+            <input type="number" name="new_elo" placeholder="New Exact Elo" required>
+            <button type="submit" style="background-color: darkorange; border-color: darkorange;">Override Elo</button>
+        </form>
+    </div>
+
+
+
+
+
+    <div>
+        <h3 style="color: darkred;">Remove Player</h3>
+        <form action="/admin/remove_player" method="POST" onsubmit="return confirm('WARNING: This permanently deletes the player and all their matches. Proceed?');">
+            <select name="player_id" required>
+                <option value="" disabled selected>Select Player to Delete...</option>
+                {% for p in players %}<option value="{{ p.id }}">{{ p.name }}</option>{% endfor %}
+            </select>
+            <button type="submit" style="background-color: darkred; border-color: darkred;">Permanently Remove</button>
+        </form>
+    </div>
+</div>
+
+<h3>🏆 Grant Custom Award</h3>
+<form action="{{ url_for('admin_grant_award') }}" method="POST">
+    <select name="player_id" required>
+        <option value="" disabled selected>Select Player...</option>
+        {% for p in players %}
+            <option value="{{ p.id }}">{{ p.name }}</option>
+        {% endfor %}
+    </select>
+    <input type="text" name="award_name" placeholder="Award Name (e.g. Shot of the Week)" required>
+    <input type="text" name="award_icon" placeholder="Emoji Icon (e.g. 🎱)" required>
+    <input type="text" name="award_desc" placeholder="Short Description..." required>
+    <button type="submit">Grant Award</button>
+</form>
+
+<h4>Revoke Awards</h4>
+<ul>
+    {% for award in awards %}
+        <li>
+            {{ award.icon }} <strong>{{ award.name }}</strong> ({{ award.player.name }})
+            <a href="{{ url_for('admin_revoke_award', award_id=award.id) }}" style="color:red; font-size: 0.8em;">[Revoke]</a>
+        </li>
+    {% else %}
+        <li>No custom awards granted yet.</li>
+    {% endfor %}
+</ul>
+<hr>
+
+
+<hr>
+<h3 style="color: #00e676;">League Season Management</h3>
+<p style="color: #aaa;">Current Active Season: <strong>{{ active_season.name if active_season else "None" }}</strong></p>
+
+<div class="card" style="border: 1px solid #00e676;">
+    <h4 style="color: #00e676; margin-bottom: 1rem;">End Current Season & Soft Reset</h4>
+    <p><strong>WARNING:</strong> This will archive the current leaderboard, reset everyone's Elo to 800, and reset Wins/Losses to 0. This cannot be undone.</p>
+    <form action="/admin/end_season" method="POST" onsubmit="return confirm('Are you sure you want to completely end the current season and reset all Elos?');">
+        <label>Name of the NEW Season starting right now (e.g., "2026-2027 Term 1 Part B")</label>
+        <input type="text" name="new_season_name" placeholder="2026-2027 Term 1 Part B" required>
+        <button type="submit" style="background-color: #00e676; color: #000; border: none; font-weight: bold;">Archive Current Season & Start New Season</button>
+    </form>
+</div>
+
+<h3>📝 Rename a Season</h3>
+<form action="{{ url_for('admin_rename_season') }}" method="POST">
+    <select name="season_id" required>
+        <option value="" disabled selected>Select a Season to Rename...</option>
+        {% for s in all_seasons %}
+            <option value="{{ s.id }}">{{ s.name }} {% if s.is_active %}(Current Active Season){% endif %}</option>
+        {% endfor %}
+    </select>
+    <input type="text" name="new_name" placeholder="Enter New Season Name..." required>
+    <button type="submit">Rename Season</button>
+</form>
+<hr>
+
+{% endblock %}

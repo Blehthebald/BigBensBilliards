@@ -1,0 +1,51 @@
+{% extends 'layout.html' %}
+{% block content %}
+<h2>Player Dashboard</h2>
+<hr>
+{% if pending_for_me %}
+    <div class="card" style="border-left: 5px solid yellow; margin-bottom: 2rem;">
+        <h3>Needs Your Confirmation</h3>
+        {% for match in pending_for_me %}
+            <p>{{ match.p1.name }} submitted a {{ match.match_type }} match. They claim {% if match.winner_id == match.p1_id %}THEY won.{% else %}YOU won.{% endif %}</p>
+            <a href="/player/confirm/{{ match.id }}" role="button">Confirm</a>
+            <a href="/player/reject/{{ match.id }}" role="button" class="secondary">Deny</a>
+        {% endfor %}
+    </div>
+{% endif %}
+
+<div class="grid">
+    <div class="card">
+        <h3>Log 1v1 Match</h3>
+        <form method="POST">
+            <input type="hidden" name="match_type" value="1v1">
+            <label>Opponent</label>
+            <select name="p2_id" required><option disabled selected>Select...</option>{% for p in opponents %}<option value="{{ p.id }}">{{ p.name }}</option>{% endfor %}</select>
+            <label>Winner</label>
+            <select name="outcome" required><option value="team1_won">I Won</option><option value="team2_won">Opponent Won</option></select>
+            <button type="submit">Submit 1v1</button>
+        </form>
+    </div>
+
+    <div class="card">
+        <h3>Log 2v2 Team Match</h3>
+        <form method="POST">
+            <input type="hidden" name="match_type" value="2v2">
+            <label>My Partner</label>
+            <select name="p1_partner_id" required><option disabled selected>Select Partner...</option>{% for p in opponents %}<option value="{{ p.id }}">{{ p.name }}</option>{% endfor %}</select>
+
+            <label>Opponent Captain</label>
+            <select name="p2_id" required><option disabled selected>Select Opponent Captain...</option>{% for p in opponents %}<option value="{{ p.id }}">{{ p.name }}</option>{% endfor %}</select>
+
+            <label>Opponent Partner</label>
+            <select name="p2_partner_id" required><option disabled selected>Select Opponent Partner...</option>{% for p in opponents %}<option value="{{ p.id }}">{{ p.name }}</option>{% endfor %}</select>
+
+            <label>Winning Team</label>
+            <select name="outcome" required>
+                <option value="team1_won">My Team Won</option>
+                <option value="team2_won">Opponent Team Won</option>
+            </select>
+            <button type="submit">Submit 2v2</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

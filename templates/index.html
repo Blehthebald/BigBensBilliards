@@ -1,0 +1,53 @@
+{% extends 'layout.html' %}
+{% block content %}
+<div class="grid">
+    <div>
+        <h2 style="margin-bottom: 0;">{% if is_archived %}<span style="color: gray;">[ARCHIVED]</span> {% endif %}{{ display_season }}</h2>
+        <p>Global Leaderboard</p>
+    </div>
+    <div style="text-align: right;">
+        <form action="/" method="GET" style="display: inline-block;">
+            <select name="season_id" onchange="this.form.submit()" style="max-width: 300px; background-color: #102240; border-color: #1a365d;">
+                <option value="" disabled selected>View Past Seasons...</option>
+                {% for season in seasons %}
+                    <option value="{{ season.id }}">{{ season.name }} {% if season.is_active %}(Current){% endif %}</option>
+                {% endfor %}
+            </select>
+        </form>
+    </div>
+</div>
+
+{% if most_wins and most_active %}
+<div class="grid" style="margin-bottom: 2rem;">
+    <div class="card" style="text-align: center; border: 1px solid #66b2ff;">
+        <small style="color: #66b2ff; text-transform: uppercase; font-weight: bold;">👑 Most Wins</small>
+        <h3 style="margin: 0.5rem 0;">{{ most_wins.name }}</h3>
+        <p style="margin: 0; color: #aaa;">{{ most_wins.wins }} Victories</p>
+    </div>
+    <div class="card" style="text-align: center; border: 1px solid #ffcc00;">
+        <small style="color: #ffcc00; text-transform: uppercase; font-weight: bold;">🔥 Most Active</small>
+        <h3 style="margin: 0.5rem 0;">{{ most_active.name }}</h3>
+        <p style="margin: 0; color: #aaa;">{{ most_active.wins + most_active.losses }} Matches Played</p>
+    </div>
+</div>
+{% endif %}
+
+<table role="grid">
+    <thead><tr><th>Rank</th><th>Player</th><th>{% if is_archived %}Final {% endif %}Elo Rating</th><th>W-L</th><th>Profile</th></tr></thead>
+    <tbody>
+        {% for player in players %}
+        <tr>
+            <td><strong>{{ loop.index }}</strong></td>
+            <td>{{ player.name }}</td>
+            <td><h2 style="margin: 0; color: {% if is_archived %}gray{% else %}#66b2ff{% endif %};">{{ player.elo }}</h2></td>
+            <td>{{ player.wins }} - {{ player.losses }}</td>
+            <td>
+                {% if player.id %}
+                <a href="/profile/{{ player.id }}" role="button" class="outline" style="padding: 5px 10px; font-size: 0.8rem;">View Stats</a>
+                {% endif %}
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

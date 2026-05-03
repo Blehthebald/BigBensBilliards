@@ -1,0 +1,100 @@
+{% extends 'layout.html' %}
+{% block content %}
+<h2>{{ player.name }}'s Profile</h2>
+<hr>
+
+<div class="grid">
+    <div>
+        <h3>Stat Overview</h3>
+        <ul>
+            <li><strong>Current Elo:</strong> {{ player.elo }}</li>
+            <li><strong>Total Matches:</strong> {{ total }}</li>
+            <li><strong>Wins:</strong> {{ player.wins }}</li>
+            <li><strong>Losses:</strong> {{ player.losses }}</li>
+            <li><strong>Win Percentage:</strong> {{ win_pct }}%</li>
+        </ul>
+    </div>
+
+    <div>
+        <h3>⚔️ Top Rivalries (1v1)</h3>
+        {% if rivals %}
+        <table role="grid" style="font-size: 0.9rem;">
+            <thead><tr><th>Opponent</th><th>Games Played</th><th>Record (W-L)</th></tr></thead>
+            <tbody>
+                {% for rival in rivals %}
+                <tr>
+                    <td><strong>{{ rival.name }}</strong></td>
+                    <td>{{ rival.total }}</td>
+                    <td><span style="color: #00e676;">{{ rival.wins }}</span> - <span style="color: #ff5252;">{{ rival.losses }}</span></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p style="color: #aaa;">No 1v1 matches played yet.</p>
+        {% endif %}
+    </div>
+</div>
+
+<hr>
+<h3 style="text-align: center; color: #ffcc00;">🏆 Trophy Case</h3>
+<div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); text-align: center; gap: 15px; margin-bottom: 2rem;">
+    {% for a in achievements %}
+        {% if a.unlocked %}
+            <div style="background-color: #102240; padding: 15px; border-radius: 8px; border: 2px solid #ffcc00; box-shadow: 0 0 10px rgba(255, 204, 0, 0.2);">
+                <div style="font-size: 2.5rem; margin-bottom: 5px;">{{ a.icon }}</div>
+                <strong style="display: block; color: #ffcc00;">{{ a.name }}</strong>
+                <small style="color: #8892b0; font-size: 0.85rem;">{{ a.desc }}</small>
+            </div>
+        {% else %}
+            <div style="background-color: rgba(16, 34, 64, 0.5); padding: 15px; border-radius: 8px; border: 2px dashed #1a365d; opacity: 0.6;">
+                <div style="font-size: 2.5rem; margin-bottom: 5px; filter: grayscale(100%);">🔒</div>
+                <strong style="display: block; color: #556680;">{{ a.name }}</strong>
+                <small style="color: #556680; font-size: 0.85rem;">{{ a.desc }}</small>
+            </div>
+        {% endif %}
+    {% endfor %}
+</div>
+
+{% if player.custom_awards %}
+    <h3 style="text-align: center; color: #64ffda; margin-top: 1rem;">🌟 Special Awards</h3>
+    <div style="display: flex; gap: 15px; flex-wrap: wrap; justify-content: center; margin-bottom: 2rem;">
+        {% for award in player.custom_awards %}
+            <div style="background-color: #102240; padding: 15px; border-radius: 8px; border: 2px solid #64ffda; box-shadow: 0 0 10px rgba(100, 255, 218, 0.2); text-align: center; width: 200px;">
+                <div style="font-size: 2.5rem; margin-bottom: 5px;">{{ award.icon }}</div>
+                <strong style="display: block; color: #64ffda;">{{ award.name }}</strong>
+                <p style="color: #8892b0; font-size: 0.85rem; margin-top: 5px; margin-bottom: 0;">{{ award.desc }}</p>
+            </div>
+        {% endfor %}
+    </div>
+{% endif %}
+<hr>
+
+<h3>Match History</h3>
+{% if not matches %}
+    <p>No matches played yet.</p>
+{% else %}
+    <table role="grid">
+        <thead><tr><th>Format</th><th>Matchup</th><th>Winner</th></tr></thead>
+        <tbody>
+            {% for match in matches %}
+            <tr>
+                <td>{{ match.match_type }}</td>
+                <td>
+                    {{ match.p1.name }}{% if match.p1_partner_id %} & {{ match.p1_partner.name }}{% endif %}
+                    <strong style="color: gray;">VS</strong>
+                    {{ match.p2.name }}{% if match.p2_partner_id %} & {{ match.p2_partner.name }}{% endif %}
+                </td>
+                <td style="color: #00e676; font-weight: bold;">
+                    {% if match.winner_id == match.p1_id %}
+                        {{ match.p1.name }}{% if match.p1_partner_id %} & {{ match.p1_partner.name }}{% endif %}
+                    {% else %}
+                        {{ match.p2.name }}{% if match.p2_partner_id %} & {{ match.p2_partner.name }}{% endif %}
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% endif %}
+{% endblock %}

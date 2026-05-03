@@ -1,0 +1,27 @@
+{% extends 'layout.html' %}
+{% block content %}
+<h2>Global Match History</h2>
+<table role="grid">
+    <thead><tr><th>Format</th><th>Team 1</th><th>Team 2</th><th>Winner</th></tr></thead>
+    <tbody>
+        {% for match in matches %}
+        <tr>
+            <td>{{ match.match_type }}</td>
+            <td>
+                <a href="/profile/{{ match.p1.id }}">{{ match.p1.name }}</a>
+                {% if match.p1_partner_id %} & <a href="/profile/{{ match.p1_partner.id }}">{{ match.p1_partner.name }}</a>{% endif %}
+            </td>
+            <td>
+                <a href="/profile/{{ match.p2.id }}">{{ match.p2.name }}</a>
+                {% if match.p2_partner_id %} & <a href="/profile/{{ match.p2_partner.id }}">{{ match.p2_partner.name }}</a>{% endif %}
+            </td>
+            <td>
+                <strong style="color: {% if match.winner_id == match.p1_id %}#66b2ff{% else %}#ff6666{% endif %};">
+                    {% if match.winner_id == match.p1_id %} Team 1 {% else %} Team 2 {% endif %}
+                </strong>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}
