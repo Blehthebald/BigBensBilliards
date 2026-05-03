@@ -7,12 +7,14 @@ app = Flask(__name__)
 app.secret_key = 'super_secret_pool_key'
 
 # --- SMART DATABASE PATH ---
-# If running on PythonAnywhere, use the absolute path.
-if 'PYTHONANYWHERE_DOMAIN' in os.environ:
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////home/Blehthebald/mysite/league.db'
-# If running locally on your computer, use a simple local path.
-else:
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///league.db'
+# Use the DATABASE_URL environment variable if it exists (on Vercel/Supabase), otherwise fall back to local SQLite
+db_url = os.environ.get('DATABASE_URL', 'sqlite:///league.db')
+
+# SQLAlchemy requires the URL to start with 'postgresql://' instead of 'postgres://'
+if db_url.startswith('postgres://'):
+    db_url = db_url.replace('postgres://', 'postgresql://', 1)
+
+app.config['SQLALCHEMY_DATABASE_URI'] = db_url
 
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
