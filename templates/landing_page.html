@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Big Ben's Billards</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #121212; color: #e0e0e0; text-align: center; padding: 50px; margin: 0; }
+        .container { max-width: 600px; margin: auto; background: #1e1e1e; padding: 40px; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.5); border: 1px solid #333; }
+        h1 { color: #ffffff; font-weight: 600; margin-bottom: 10px; }
+        p { color: #a0a0a0; font-size: 1.1em; line-height: 1.6; }
+        .highlight { color: #00e676; font-weight: bold; }
+        .url-box { background: #2c2c2c; padding: 15px; border-radius: 8px; font-family: monospace; color: #fff; margin-top: 20px; display: inline-block;}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎱 Big Ben's Billiards</h1>
+        <p>The ultimate platform for managing school pool leagues, tracking Elo rankings, and recording match history.</p>
+        <hr style="border: 0; border-top: 1px solid #333; margin: 30px 0;">
+        <p>If you are a player or an administrator, please navigate to your <span class="highlight">school's specific URL</span> to log in.</p>
+        <div class="url-box">
+            https://big-bens-billiards.vercel.app//<strong>your-school-slug</strong>/
+        </div>
+    </div>
+</body>
+
+<div class="card" style="margin-top: 2rem; max-width: 600px; margin-left: auto; margin-right: auto;">
+    <h3 style="text-align: center;">Active Leagues</h3>
+
+    {% if not leagues %}
+        <p style="text-align: center; color: #aaa;">No leagues have been created yet!</p>
+    {% else %}
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+            {% for league in leagues %}
+                <a href="{{ url_for('index', league_slug=league.url_slug) }}"
+                   style="display: block; padding: 15px; background-color: #1a1b26; border: 1px solid #00e676; border-radius: 8px; text-decoration: none; color: #00e676; font-weight: bold; transition: background-color 0.2s;">
+                    🎱 {{ league.display_name }}
+                    <span style="float: right; color: #00e676; font-weight: normal;">Join &rarr;</span>
+                </a>
+            {% endfor %}
+        </div>
+    {% endif %}
+</div>
+
+</html>

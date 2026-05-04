@@ -1,32 +1,34 @@
-{% extends 'layout.html' %}
-{% block content %}
-<div style="text-align: center; padding: 10vh 20px;">
-    <h1 style="
-        font-family: 'Georgia', serif; 
-        font-size: 6rem; 
-        color: #4CAF50; 
-        text-shadow: 4px 4px 0px #5c4033, 6px 6px 0px #3e2723; 
-        margin-bottom: 0;
-        line-height: 1;
-    ">
-        404
-    </h1>
-    
-    <h2 style="color: #ffcc00; margin-top: 1rem;">Lost in the Weeds! 🌿</h2>
-    
-    <p style="font-size: 1.2rem; color: #8892b0; max-width: 600px; margin: 0 auto 2rem auto;">
-        It looks like this player has wandered off the garden path, or their account has been permanently pruned from the league. 
-    </p>
-    
-    <a href="/" role="button" style="
-        background-color: #4CAF50; 
-        border-color: #3e2723; 
-        color: white; 
-        font-weight: bold; 
-        padding: 10px 30px; 
-        border-radius: 5px;
-    ">
-        Return to the Greenhouse
-    </a>
-</div>
-{% endblock %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Page Not Found</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@1/css/pico.min.css">
+    <style>
+        body { background-color: #030811; color: #d1e8ff; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; }
+        .container { text-align: center; background-color: #0b1830; border: 18px solid #4a2b16; border-radius: 12px; box-shadow: inset 0 0 30px rgba(0,0,0,0.8), 0 10px 20px rgba(0,0,0,0.5); padding: 4rem 2.5rem; position: relative; max-width: 800px; }
+        .container::before, .container::after, .pocket-tr, .pocket-bl { content: ''; position: absolute; width: 45px; height: 45px; background-color: #010204; border-radius: 50%; box-shadow: inset 0 0 10px rgba(0,0,0,1); z-index: 10; }
+        .container::before { top: -25px; left: -25px; } .container::after { bottom: -25px; right: -25px; } .pocket-tr { top: -25px; right: -25px; } .pocket-bl { bottom: -25px; left: -25px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="pocket-tr"></div>
+        <div class="pocket-bl"></div>
+
+        <h1 style="font-family: 'Georgia', serif; font-size: 6rem; color: #4CAF50; text-shadow: 4px 4px 0px #5c4033, 6px 6px 0px #3e2723; margin-bottom: 0; line-height: 1;">
+            404
+        </h1>
+
+        <h2 style="color: #ffcc00; margin-top: 1rem;">Lost in the Weeds! 🌿</h2>
+
+        <p style="font-size: 1.2rem; color: #8892b0; max-width: 600px; margin: 0 auto 2rem auto;">
+            It looks like you've wandered off the garden path, or the league you are looking for has been permanently pruned.
+        </p>
+
+        <a href="/" role="button" style="background-color: #4CAF50; border-color: #3e2723; color: white; font-weight: bold; padding: 10px 30px; border-radius: 5px;">
+            Return to the Global Directory
+        </a>
+    </div>
+</body>
+</html>

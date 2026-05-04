@@ -6,7 +6,7 @@
         <p>Global Leaderboard</p>
     </div>
     <div style="text-align: right;">
-        <form action="/" method="GET" style="display: inline-block;">
+        <form action="{{ url_for('index', league_slug=league.url_slug) }}" method="GET" style="display: inline-block;">
             <select name="season_id" onchange="this.form.submit()" style="max-width: 300px; background-color: #102240; border-color: #1a365d;">
                 <option value="" disabled selected>View Past Seasons...</option>
                 {% for season in seasons %}
@@ -43,7 +43,7 @@
             <td>{{ player.wins }} - {{ player.losses }}</td>
             <td>
                 {% if player.id %}
-                <a href="/profile/{{ player.id }}" role="button" class="outline" style="padding: 5px 10px; font-size: 0.8rem;">View Stats</a>
+                <a href="{{ url_for('profile', league_slug=league.url_slug, player_id=player.id) }}" role="button" class="outline" style="padding: 5px 10px; font-size: 0.8rem;">View Stats</a>
                 {% endif %}
             </td>
         </tr>

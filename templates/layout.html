@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Garden Pool League</title>
+    <title>{{ league.display_name }}</title>
 
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@1/css/pico.min.css">
     <link href="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/css/tom-select.css" rel="stylesheet">
@@ -36,75 +36,19 @@
 
     <style>
         /* THE ULTIMATE FONT FIX: Force all Tom Select elements to use Pico CSS's font */
-        .ts-wrapper, .ts-wrapper * {
-            font-family: var(--font-family, inherit) !important;
-        }
-
-        /* UN-BOLD AND NORMALIZE SIZE: Forces standard text appearance */
+        .ts-wrapper, .ts-wrapper * { font-family: var(--font-family, inherit) !important; }
         .ts-control, .ts-control input, .ts-control .item, .ts-dropdown, .ts-dropdown .option {
-            font-size: 1rem !important;
-            font-weight: 400 !important; /* 400 is normal/un-bolded text */
+            font-size: 1rem !important; font-weight: 400 !important;
         }
-
-        /* Garden Theme Control Container */
         .ts-control {
-            background-color: #102240 !important;
-            border-color: #1a365d !important;
-            color: white !important;
-            padding: 10px 15px !important;
-            border-radius: 5px;
-
-            /* Flexbox forces everything onto exactly one line */
-            display: flex !important;
-            align-items: center !important;
-            flex-wrap: nowrap !important;
+            background-color: #102240 !important; border-color: #1a365d !important; color: white !important;
+            padding: 10px 15px !important; border-radius: 5px; display: flex !important; align-items: center !important; flex-wrap: nowrap !important;
         }
-
-        /* Fix the dropdown menu colors */
-        .ts-dropdown {
-            background-color: #102240;
-            color: white;
-            border-color: #1a365d;
-            border-radius: 5px;
-        }
-        .ts-dropdown .option.active, .ts-dropdown .option:hover {
-            background-color: #4CAF50 !important;
-            color: white !important;
-        }
-
-        /* Override the framework forcing the input to a new line */
-        .ts-control > input {
-            display: inline-block !important;
-            width: auto !important;
-            flex-grow: 1 !important; /* Tells the input to take up the remaining space */
-            margin: 0 !important;
-            padding: 0 !important;
-            border: none !important;
-            box-shadow: none !important;
-            background: transparent !important;
-            color: white !important;
-        }
-
-        /* Ensure the selected player name formats cleanly */
-        .ts-control .item {
-            display: inline-block !important;
-            margin-bottom: 0 !important;
-            white-space: nowrap !important;
-        }
-
-        /* Push the 'X' to the far right so it never covers the text */
-        .ts-control .clear-button {
-            position: static !important;
-            margin-left: auto !important;
-            margin-right: 0 !important;
-            color: #ff5252 !important;
-            font-size: 1.5rem !important; /* Keep the 'X' large enough to click easily */
-            line-height: 1 !important;
-            padding-left: 15px !important;
-            background: none !important;
-            border: none !important;
-            cursor: pointer !important;
-        }
+        .ts-dropdown { background-color: #102240; color: white; border-color: #1a365d; border-radius: 5px; }
+        .ts-dropdown .option.active, .ts-dropdown .option:hover { background-color: #4CAF50 !important; color: white !important; }
+        .ts-control > input { display: inline-block !important; width: auto !important; flex-grow: 1 !important; margin: 0 !important; padding: 0 !important; border: none !important; box-shadow: none !important; background: transparent !important; color: white !important; }
+        .ts-control .item { display: inline-block !important; margin-bottom: 0 !important; white-space: nowrap !important; }
+        .ts-control .clear-button { position: static !important; margin-left: auto !important; margin-right: 0 !important; color: #ff5252 !important; font-size: 1.5rem !important; line-height: 1 !important; padding-left: 15px !important; background: none !important; border: none !important; cursor: pointer !important; }
     </style>
 </head>
 <body>
@@ -112,24 +56,24 @@
         <ul>
             <li>
                 <strong style="font-family: 'Georgia', serif; color: #4CAF50; text-shadow: 2px 2px 0px #5c4033, 3px 3px 0px #3e2723; font-size: 1.5rem; letter-spacing: 1px;">
-                    🌿 Garden Pool League
+                    🌿 {{ league.display_name }}
                 </strong>
             </li>
         </ul>
         <ul>
-            <li><a href="/">Leaderboard</a></li>
-            <li><a href="/history">History</a></li>
-            <li><a href="/achievements">Achievements</a></li>
+            <li><a href="{{ url_for('index', league_slug=league.url_slug) }}">Leaderboard</a></li>
+            <li><a href="{{ url_for('history', league_slug=league.url_slug) }}">History</a></li>
+            <li><a href="{{ url_for('achievements', league_slug=league.url_slug) }}">Achievements</a></li>
             {% if session.get('player_id') %}
-                <li><a href="/dashboard">Dashboard</a></li>
-                <li><a href="/profile/{{ session.get('player_id') }}">My Profile</a></li>
-                <li><a href="/logout">Logout</a></li>
-            {% elif session.get('admin') %}
-                <li><a href="/admin">Admin</a></li>
-                <li><a href="/logout">Logout</a></li>
+                <li><a href="{{ url_for('dashboard', league_slug=league.url_slug) }}">Dashboard</a></li>
+                <li><a href="{{ url_for('profile', league_slug=league.url_slug, player_id=session.get('player_id')) }}">My Profile</a></li>
+                <li><a href="{{ url_for('logout', league_slug=league.url_slug) }}">Logout</a></li>
+            {% elif session.get('admin_league_id') == league.id %}
+                <li><a href="{{ url_for('admin', league_slug=league.url_slug) }}">Admin</a></li>
+                <li><a href="{{ url_for('logout', league_slug=league.url_slug) }}">Logout</a></li>
             {% else %}
-                <li><a href="/login">Login</a></li>
-                <li><a href="/signup">Sign Up</a></li>
+                <li><a href="{{ url_for('login', league_slug=league.url_slug) }}">Login</a></li>
+                <li><a href="{{ url_for('signup', league_slug=league.url_slug) }}">Sign Up</a></li>
             {% endif %}
         </ul>
     </nav>
@@ -151,22 +95,15 @@
     <script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>
     <script>
         document.addEventListener("DOMContentLoaded", function() {
-            // Target all dropdowns used for selecting players
             const playerSelects = document.querySelectorAll('select[name="p1_id"], select[name="p2_id"], select[name="p1_partner_id"], select[name="p2_partner_id"]');
-
             playerSelects.forEach((el) => {
                 new TomSelect(el, {
                     create: false,
                     maxItems: 1,
-                    plugins: ['clear_button'], // Adds the 'X' to remove a picked name
+                    plugins: ['clear_button'],
                     placeholder: "Type a name to search...",
-                    sortField: {
-                        field: "text",
-                        direction: "asc"
-                    },
-                    onItemAdd: function() {
-                        this.blur(); // Automatically closes the keyboard/dropdown once clicked
-                    }
+                    sortField: { field: "text", direction: "asc" },
+                    onItemAdd: function() { this.blur(); }
                 });
             });
         });
