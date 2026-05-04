@@ -1,5 +1,5 @@
 import os
-from sqlalchemy import text # Make sure to put this at the very top of app.py!
+from sqlalchemy import or_
 from flask import Flask, render_template, request, redirect, url_for, session, flash
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -862,16 +862,34 @@ def admin_edit_elo(league_slug):
 @app.route('/<league_slug>/admin/remove_player', methods=['POST'])
 def admin_remove_player(league_slug):
     league = League.query.filter_by(url_slug=league_slug).first_or_404()
+
+    # Security check: Ensure they are actually logged in as the admin
     if session.get('admin_league_id') != league.id:
         return redirect(url_for('login', league_slug=league.url_slug))
 
     player_id = request.form.get('player_id')
+
     if player_id:
         player = Player.query.filter_by(id=player_id, league_id=league.id).first()
         if player:
+            # 1. Delete all Custom Awards given to this player
+            CustomAward.query.filter_by(player_id=player.id).delete()
+
+            # 2. Delete all matches where this player participated in any slot
+            Match.query.filter(
+                or_(
+                    Match.p1_id == player.id,
+                    Match.p2_id == player.id,
+                    Match.p1_partner_id == player.id,
+                    Match.p2_partner_id == player.id
+                )
+            ).delete(synchronize_session=False)
+
+            # 3. Now that the dependencies are gone, safely delete the player
             db.session.delete(player)
             db.session.commit()
-            flash(f"Player {player.name} permanently removed.", "success")
+
+            flash(f"Player {player.name} and their history have been successfully removed.", "success")
 
     return redirect(url_for('admin', league_slug=league.url_slug))
 
