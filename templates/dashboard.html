@@ -81,4 +81,12 @@
     </div>
 </div>
 
+<div class="card" style="border: 1px solid #339af0; margin-top: 2rem;">
+    <h4 style="color: #339af0; margin-bottom: 1rem;">✏️ Rename Profile</h4>
+    <form action="{{ url_for('rename_player', league_slug=league.url_slug) }}" method="POST" style="display: flex; gap: 10px; align-items: center;">
+        <input type="text" name="new_name" placeholder="Enter new username..." required style="flex-grow: 1; margin-bottom: 0;">
+        <button type="submit" style="background-color: #339af0; color: #fff; border: none; font-weight: bold; margin-bottom: 0;">Update Name</button>
+    </form>
+</div>
+
 {% endblock %}

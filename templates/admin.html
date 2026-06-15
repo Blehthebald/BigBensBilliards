@@ -87,6 +87,57 @@
 </div>
 
 <hr>
+<h3 style="color: #ff5252;">⏪ Undo Recent Matches</h3>
+<p style="color: #aaa;">This will completely erase the match and revert the Elo and Win/Loss stats of all involved players.</p>
+
+{% if not recent_matches %}
+    <p style="color: #aaa;">No recent matches available to undo.</p>
+{% else %}
+    <table role="grid">
+        <thead>
+            <tr>
+                <th>Type</th>
+                <th>Team 1</th>
+                <th>Team 2</th>
+                <th>Winner</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for match in recent_matches %}
+            <tr>
+                <td><strong>{{ match.match_type }}</strong></td>
+                <td>
+                    {{ match.p1.name }}
+                    {% if match.match_type == '2v2' and match.p1_partner %}
+                        <br>& {{ match.p1_partner.name }}
+                    {% endif %}
+                </td>
+                <td>
+                    {{ match.p2.name }}
+                    {% if match.match_type == '2v2' and match.p2_partner %}
+                        <br>& {{ match.p2_partner.name }}
+                    {% endif %}
+                </td>
+                <td>
+                    {% if match.winner_id == match.p1_id or (match.match_type == '2v2' and match.winner_id == match.p1_partner_id) %}
+                        <span style="color: #4CAF50;">Team 1</span>
+                    {% else %}
+                        <span style="color: #4CAF50;">Team 2</span>
+                    {% endif %}
+                </td>
+                <td>
+                    <form action="{{ url_for('admin_undo_match', league_slug=league.url_slug, match_id=match.id) }}" method="POST" onsubmit="return confirm('Are you sure you want to completely undo this match and revert all Elo/Win/Loss changes?');">
+                        <button type="submit" style="background-color: #ff5252; color: #fff; border: none; padding: 5px 10px; font-size: 0.85rem;">Undo Match</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% endif %}
+
+<hr>
 <h3 style="color: #ffcc00;">Admin Override: Force Log Match</h3>
 <p style="color: #aaa;">Use this to manually bypass player confirmation if someone refuses to accept a loss.</p>
 <div class="grid">
@@ -175,14 +226,22 @@
 
 <h4>Revoke Awards</h4>
 <ul>
-    {% for award in awards %}
-        <li>
-            {{ award.icon }} <strong>{{ award.name }}</strong> ({{ award.player.name }})
-            <a href="{{ url_for('admin_revoke_award', league_slug=league.url_slug, award_id=award.id) }}" style="color:red; font-size: 0.8em;">[Revoke]</a>
-        </li>
-    {% else %}
-        <li>No custom awards granted yet.</li>
-    {% endfor %}
+    {% if not custom_awards %}
+    <p>No custom award granted yet</p>
+{% else %}
+    <ul>
+        {% for award in custom_awards %}
+            <li>
+                {{ award.player.name }} - {{ award.icon }} {{ award.name }}
+                <a href="{{ url_for('admin_revoke_award', league_slug=league.url_slug, award_id=award.id) }}"
+                   onclick="return confirm('Revoke this award?');"
+                   style="color: #ff6666; margin-left: 10px;">
+                    (Revoke)
+                </a>
+            </li>
+        {% endfor %}
+    </ul>
+{% endif %}
 </ul>
 <hr>
 

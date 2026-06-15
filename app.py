@@ -37,6 +37,11 @@ class League(db.Model):
     season_records = db.relationship('SeasonRecord', backref='league', lazy=True)
     custom_awards = db.relationship('CustomAward', backref='league', lazy=True)
 
+    p1_elo_pre = db.Column(db.Integer, nullable=True)
+    p2_elo_pre = db.Column(db.Integer, nullable=True)
+    p1_partner_elo_pre = db.Column(db.Integer, nullable=True)
+    p2_partner_elo_pre = db.Column(db.Integer, nullable=True)
+
 
 class Player(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -277,11 +282,22 @@ def update_elos(match):
     team2_players = [p2]
 
     # Check if it's a 2v2 and append partners to the teams
+    p1_partner = None
+    p2_partner = None
     if match.match_type == '2v2':
         if match.p1_partner_id:
-            team1_players.append(Player.query.get(match.p1_partner_id))
+            p1_partner = Player.query.get(match.p1_partner_id)
+            team1_players.append(p1_partner)
         if match.p2_partner_id:
-            team2_players.append(Player.query.get(match.p2_partner_id))
+            p2_partner = Player.query.get(match.p2_partner_id)
+            team2_players.append(p2_partner)
+
+    # ---> THE FIX: SAVE ELOS BEFORE THEY CHANGE <---
+    match.p1_elo_pre = p1.elo
+    match.p2_elo_pre = p2.elo
+    if match.match_type == '2v2':
+        if p1_partner: match.p1_partner_elo_pre = p1_partner.elo
+        if p2_partner: match.p2_partner_elo_pre = p2_partner.elo
 
     # 2. Calculate Team Averages
     team1_avg_elo = sum(p.elo for p in team1_players) / len(team1_players)
@@ -303,38 +319,24 @@ def update_elos(match):
 
     # 6. Apply Elo Changes, Track Peaks, and Update Win/Loss Stats
     for p in team1_players:
-        # 1. SECURE PRE-MATCH ELO AS PEAK (Fixes legacy players!)
         current_peak = p.peak_elo if p.peak_elo is not None else 800
         p.peak_elo = max(p.elo, current_peak)
 
-        # 2. Apply the match result
         p.elo += elo_change_team1
+        if p.elo > p.peak_elo: p.peak_elo = p.elo
 
-        # 3. Check if the post-match Elo is a new all-time high
-        if p.elo > p.peak_elo:
-            p.peak_elo = p.elo
-
-        if team1_won:
-            p.wins += 1
-        else:
-            p.losses += 1
+        if team1_won: p.wins += 1
+        else: p.losses += 1
 
     for p in team2_players:
-        # 1. SECURE PRE-MATCH ELO AS PEAK
         current_peak = p.peak_elo if p.peak_elo is not None else 800
         p.peak_elo = max(p.elo, current_peak)
 
-        # 2. Apply the match result
         p.elo += elo_change_team2
+        if p.elo > p.peak_elo: p.peak_elo = p.elo
 
-        # 3. Check if the post-match Elo is a new all-time high
-        if p.elo > p.peak_elo:
-            p.peak_elo = p.elo
-
-        if not team1_won:
-            p.wins += 1
-        else:
-            p.losses += 1
+        if not team1_won: p.wins += 1
+        else: p.losses += 1
 
     # Save all the updated stats to the database
     db.session.commit()
@@ -386,11 +388,19 @@ def signup(league_slug):
     if request.method == 'POST':
         name = request.form['name'].strip()
         password = request.form['password']
+        confirm_password = request.form.get('confirm_password')
+
+        # NEW: Check if passwords match
+        if password != confirm_password:
+            flash("Passwords do not match! Please try again.", "error")
+            return redirect(url_for('signup', league_slug=league.url_slug))
 
         if name.lower() == 'admin':
+            flash("The username 'admin' is reserved.", "error")
             return redirect(url_for('signup', league_slug=league.url_slug))
 
         if Player.query.filter_by(name=name, league_id=league.id).first():
+            flash("That username is already taken. Please choose another.", "error")
             return redirect(url_for('signup', league_slug=league.url_slug))
 
         hashed_pw = generate_password_hash(password)
@@ -446,10 +456,7 @@ def logout(league_slug):
     return redirect(url_for('index', league_slug=league_slug))
 
 
-# --- GLOBAL LEAGUE ROUTES ---
-# --- MAIN LEAGUE LEADERBOARD (INDEX) ---
 
-# --- MAIN LEAGUE LEADERBOARD (INDEX) ---
 
 @app.route('/<league_slug>/')
 def index(league_slug):
@@ -543,7 +550,7 @@ def dashboard(league_slug):
             match_type=match_type,
             p1_id=session['player_id'],
             p2_id=p2_id,
-            status='pending_opponent'
+            status='pending_admin'  # <-- This forces it straight to the admin dashboard!
         )
 
         if match_type == '2v2':
@@ -557,7 +564,7 @@ def dashboard(league_slug):
 
         db.session.add(match)
         db.session.commit()
-        flash("Match logged! Waiting for opponent to confirm.", "success")
+        flash("Match logged! Awaiting final admin approval.", "success")
         return redirect(url_for('dashboard', league_slug=league.url_slug))
 
     # Fetch the logged-in player
@@ -578,6 +585,39 @@ def dashboard(league_slug):
                            opponents=opponents, pending_for_me=pending_for_me)
 
 
+@app.route('/<league_slug>/rename', methods=['POST'])
+def rename_player(league_slug):
+    # Get the current league
+    league = League.query.filter_by(url_slug=league_slug).first_or_404()
+
+    # Ensure the user is actually logged in as a player
+    player_id = session.get('player_id')
+    if not player_id:
+        flash("You must be logged in to change your name.", "error")
+        return redirect(url_for('login', league_slug=league.url_slug))
+
+    player = Player.query.filter_by(id=player_id, league_id=league.id).first()
+    if not player:
+        return redirect(url_for('login', league_slug=league.url_slug))
+
+    new_name = request.form.get('new_name')
+
+    if new_name and len(new_name.strip()) > 0:
+        clean_name = new_name.strip()
+
+        # Prevent renaming to a name that already exists in this league
+        existing_player = Player.query.filter_by(league_id=league.id, name=clean_name).first()
+        if existing_player and existing_player.id != player.id:
+            flash(f"The name '{clean_name}' is already taken!", "error")
+        else:
+            # Update the name and save to database
+            player.name = clean_name
+            db.session.commit()
+            flash("Your name has been successfully updated!", "success")
+    else:
+        flash("Invalid name provided.", "error")
+
+    return redirect(url_for('dashboard', league_slug=league.url_slug))
 
 
 # --- MISSING GLOBAL LEAGUE ROUTES ---
@@ -640,32 +680,7 @@ def profile(league_slug, player_id):
 
 
 # --- DASHBOARD CONFIRMATION ACTIONS ---
-@app.route('/<league_slug>/player/confirm/<int:match_id>')
-def player_confirm(league_slug, match_id):
-    league = League.query.filter_by(url_slug=league_slug).first_or_404()
-    if 'player_id' not in session or session.get('league_id') != league.id:
-        return redirect(url_for('login', league_slug=league.url_slug))
 
-    match = Match.query.filter_by(id=match_id, league_id=league.id).first()
-    if match and match.status == 'pending_opponent':
-        match.status = 'pending_admin'
-        db.session.commit()
-        flash("Match confirmed! Awaiting final admin approval.", "success")
-    return redirect(url_for('dashboard', league_slug=league.url_slug))
-
-
-@app.route('/<league_slug>/player/reject/<int:match_id>')
-def player_reject(league_slug, match_id):
-    league = League.query.filter_by(url_slug=league_slug).first_or_404()
-    if 'player_id' not in session or session.get('league_id') != league.id:
-        return redirect(url_for('login', league_slug=league.url_slug))
-
-    match = Match.query.filter_by(id=match_id, league_id=league.id).first()
-    if match and match.status == 'pending_opponent':
-        db.session.delete(match)
-        db.session.commit()
-        flash("Match rejected and deleted.", "error")
-    return redirect(url_for('dashboard', league_slug=league.url_slug))
 # --- LEAGUE ADMIN ROUTES ---
 @app.route('/<league_slug>/admin')
 def admin(league_slug):
@@ -674,19 +689,25 @@ def admin(league_slug):
     if session.get('admin_league_id') != league.id:
         return redirect(url_for('login', league_slug=league.url_slug))
 
-    # Fetch data for the dashboard
     pending_players = Player.query.filter_by(league_id=league.id, is_approved=False).all()
     approved_players = Player.query.filter_by(league_id=league.id, is_approved=True).all()
     seasons = Season.query.filter_by(league_id=league.id).all()
 
-    # --- THE MISSING QUERY ---
-    # Fetch all matches that have been confirmed by players and are waiting for you
     pending_matches = Match.query.filter_by(league_id=league.id, status='pending_admin').all()
+    recent_matches = Match.query.filter_by(league_id=league.id, status='approved').order_by(Match.id.desc()).limit(15).all()
 
-    # Make sure pending_matches is actually passed to the template here at the end!
-    return render_template('admin.html', league=league, pending_players=pending_players,
-                           players=approved_players, seasons=seasons,
-                           pending_matches=pending_matches)
+    # ---> NEW: Fetch all custom awards for this league <---
+    custom_awards = CustomAward.query.filter_by(league_id=league.id).all()
+
+    # ---> NEW: Pass custom_awards to the template <---
+    return render_template('admin.html',
+                           league=league,
+                           pending_players=pending_players,
+                           players=approved_players,
+                           seasons=seasons,
+                           pending_matches=pending_matches,
+                           recent_matches=recent_matches,
+                           custom_awards=custom_awards)
 
 
 @app.route('/<league_slug>/admin/change_password', methods=['POST'])
@@ -772,6 +793,7 @@ def admin_force_match(league_slug):
     db.session.commit()
 
     if 'update_elos' in globals():
+
         update_elos(match)
 
     flash("Match successfully forced and approved!", "success")
@@ -798,13 +820,21 @@ def admin_grant_award(league_slug):
 @app.route('/<league_slug>/admin/revoke_award/<int:award_id>')
 def admin_revoke_award(league_slug, award_id):
     league = League.query.filter_by(url_slug=league_slug).first_or_404()
-    if session.get('admin_league_id') != league.id: return redirect(url_for('login', league_slug=league.url_slug))
 
+    # Security check: Ensure they are actually logged in as the admin
+    if session.get('admin_league_id') != league.id:
+        return redirect(url_for('login', league_slug=league.url_slug))
+
+    # Find the specific award and make sure it belongs to this league
     award = CustomAward.query.filter_by(id=award_id, league_id=league.id).first()
+
     if award:
         db.session.delete(award)
         db.session.commit()
-        flash("Custom award revoked.")
+        flash(f"Custom award '{award.name}' successfully revoked.", "success")
+    else:
+        flash("Award not found or already deleted.", "error")
+
     return redirect(url_for('admin', league_slug=league.url_slug))
 
 
@@ -894,6 +924,64 @@ def admin_remove_player(league_slug):
     return redirect(url_for('admin', league_slug=league.url_slug))
 
 
+@app.route('/<league_slug>/admin/undo_match/<int:match_id>', methods=['POST'])
+def admin_undo_match(league_slug, match_id):
+    league = League.query.filter_by(url_slug=league_slug).first_or_404()
+
+    # Ensure admin is logged in
+    if session.get('admin_league_id') != league.id:
+        return redirect(url_for('login', league_slug=league.url_slug))
+
+    match = Match.query.filter_by(id=match_id, league_id=league.id, status='approved').first()
+    if not match:
+        flash("Match not found or already undone.", "error")
+        return redirect(url_for('admin', league_slug=league.url_slug))
+
+    # 1. Fetch the players
+    p1 = Player.query.get(match.p1_id)
+    p2 = Player.query.get(match.p2_id)
+
+    # 2. Revert their Elos back to what they were before the match
+    if match.p1_elo_pre is not None:
+        p1.elo = match.p1_elo_pre
+    if match.p2_elo_pre is not None:
+        p2.elo = match.p2_elo_pre
+
+    team1_won = (match.winner_id == match.p1_id) or (
+                match.match_type == '2v2' and match.winner_id == match.p1_partner_id)
+
+    # 3. Revert Wins/Losses for Team Captains
+    if team1_won:
+        if p1.wins > 0: p1.wins -= 1
+        if p2.losses > 0: p2.losses -= 1
+    else:
+        if p2.wins > 0: p2.wins -= 1
+        if p1.losses > 0: p1.losses -= 1
+
+    # 4. Handle 2v2 partner reversions if applicable
+    if match.match_type == '2v2':
+        p1_partner = Player.query.get(match.p1_partner_id)
+        p2_partner = Player.query.get(match.p2_partner_id)
+
+        if p1_partner and match.p1_partner_elo_pre is not None:
+            p1_partner.elo = match.p1_partner_elo_pre
+        if p2_partner and match.p2_partner_elo_pre is not None:
+            p2_partner.elo = match.p2_partner_elo_pre
+
+        if team1_won:
+            if p1_partner and p1_partner.wins > 0: p1_partner.wins -= 1
+            if p2_partner and p2_partner.losses > 0: p2_partner.losses -= 1
+        else:
+            if p2_partner and p2_partner.wins > 0: p2_partner.wins -= 1
+            if p1_partner and p1_partner.losses > 0: p1_partner.losses -= 1
+
+    # 5. Delete the match from the database
+    db.session.delete(match)
+    db.session.commit()
+
+    flash("Match successfully undone. Elo and Win/Loss stats have been reverted.", "success")
+    return redirect(url_for('admin', league_slug=league.url_slug))
+
 @app.route('/<league_slug>/admin/approve_match/<int:match_id>')
 def admin_approve_match(league_slug, match_id):
     league = League.query.filter_by(url_slug=league_slug).first_or_404()
@@ -906,6 +994,9 @@ def admin_approve_match(league_slug, match_id):
         db.session.commit()
         # Call the Elo update function we added earlier!
         if 'update_elos' in globals():
+            # Save the Elos BEFORE they change so we can undo them later
+
+
             update_elos(match)
         flash("Match officially approved and Elos updated!", "success")
 

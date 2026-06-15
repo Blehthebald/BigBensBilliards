@@ -108,5 +108,46 @@
             });
         });
     </script>
+
+    <script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            // --- TOM SELECT LOGIC ---
+            const playerSelects = document.querySelectorAll('select[name="p1_id"], select[name="p2_id"], select[name="p1_partner_id"], select[name="p2_partner_id"]');
+            playerSelects.forEach((el) => {
+                new TomSelect(el, {
+                    create: false,
+                    maxItems: 1,
+                    plugins: ['clear_button'],
+                    placeholder: "Type a name to search...",
+                    sortField: { field: "text", direction: "asc" },
+                    onItemAdd: function() { this.blur(); }
+                });
+            });
+
+            // --- PREVENT DOUBLE SUBMISSIONS ---
+            // Find every form on the page
+            const forms = document.querySelectorAll('form');
+
+            forms.forEach(form => {
+                form.addEventListener('submit', function() {
+                    // Find all submit buttons within the form being submitted
+                    const submitButtons = form.querySelectorAll('button[type="submit"], input[type="submit"]');
+
+                    submitButtons.forEach(button => {
+                        // Disable the button to prevent further clicks
+                        button.disabled = true;
+
+                        // Provide visual feedback to the user so they know it's working
+                        if (button.tagName === 'BUTTON') {
+                            // Save original width to prevent button shrinking when text changes
+                            button.style.width = button.offsetWidth + 'px';
+                            button.innerHTML = 'Processing... 🎱';
+                        }
+                    });
+                });
+            });
+        });
+    </script>
 </body>
 </html>
