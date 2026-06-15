@@ -37,10 +37,7 @@ class League(db.Model):
     season_records = db.relationship('SeasonRecord', backref='league', lazy=True)
     custom_awards = db.relationship('CustomAward', backref='league', lazy=True)
 
-    p1_elo_pre = db.Column(db.Integer, nullable=True)
-    p2_elo_pre = db.Column(db.Integer, nullable=True)
-    p1_partner_elo_pre = db.Column(db.Integer, nullable=True)
-    p2_partner_elo_pre = db.Column(db.Integer, nullable=True)
+
 
 
 class Player(db.Model):
